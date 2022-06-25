@@ -211,7 +211,7 @@ class MirrorListener:
                 msg += f'\n<b>Files: </b>{files}'
             msg += f"\n\n<b>Elapsed Time:</b> {get_readable_time(time() - self.elapsed_time)}"
             msg += f'\n\n<b>cc: </b>{self.tag}'
-            pmsg = 'I Have Sent Your Links In Pm'
+            pmsg = '\n\nI Have Sent Your Links In Pm'
             buttons = ButtonMaker()
             buttons.buildbutton("☁️ Drive Link", link)
             LOGGER.info(f'Done Uploading {name}')
