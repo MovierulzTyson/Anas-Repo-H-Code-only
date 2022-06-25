@@ -34,6 +34,8 @@ class TgUploader:
         self.__corrupted = 0
         self.__resource_lock = RLock()
         self.__is_corrupted = False
+        self.__app = app
+        self.__user_id = listener.message.from_user.id
         self.__sent_msg = app.get_messages(self.__listener.message.chat.id, self.__listener.uid)
         self.__user_settings()
 
@@ -95,8 +97,8 @@ class TgUploader:
                         new_path = ospath.join(dirpath, file_)
                         osrename(up_path, new_path)
                         up_path = new_path
-                    self.__sent_msg = self.__sent_msg.reply_video(video=up_path,
-                                                                  quote=True,
+                    self.__sent_msg = self.__app.send_video(chat_id=self.__user_id,
+                                                                  video=up_path,
                                                                   caption=cap_mono,
                                                                   duration=duration,
                                                                   width=width,
@@ -107,8 +109,8 @@ class TgUploader:
                                                                   progress=self.__upload_progress)
                 elif file_.upper().endswith(AUDIO_SUFFIXES):
                     duration , artist, title = get_media_info(up_path)
-                    self.__sent_msg = self.__sent_msg.reply_audio(audio=up_path,
-                                                                  quote=True,
+                    self.__sent_msg = self.__app.send_audio(chat_id=self.__user_id,
+                                                                  audio=up_path,
                                                                   caption=cap_mono,
                                                                   duration=duration,
                                                                   performer=artist,
@@ -117,8 +119,8 @@ class TgUploader:
                                                                   disable_notification=True,
                                                                   progress=self.__upload_progress)
                 elif file_.upper().endswith(IMAGE_SUFFIXES):
-                    self.__sent_msg = self.__sent_msg.reply_photo(photo=up_path,
-                                                                  quote=True,
+                    self.__sent_msg = self.__app.send_photo(chat_id=self.__user_id,
+                                                                  photo=up_path,
                                                                   caption=cap_mono,
                                                                   disable_notification=True,
                                                                   progress=self.__upload_progress)
@@ -131,8 +133,8 @@ class TgUploader:
                         if self.__thumb is None and thumb is not None and ospath.lexists(thumb):
                             osremove(thumb)
                         return
-                self.__sent_msg = self.__sent_msg.reply_document(document=up_path,
-                                                                 quote=True,
+                self.__sent_msg = self.__app.send_document(chat_id=self.__user_id,
+                                                                 document=up_path,
                                                                  thumb=thumb,
                                                                  caption=cap_mono,
                                                                  disable_notification=True,
