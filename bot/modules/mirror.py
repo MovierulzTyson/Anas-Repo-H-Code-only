@@ -12,7 +12,7 @@ from telegram.ext import CommandHandler
 from telegram import InlineKeyboardMarkup
 
 from bot import Interval, INDEX_URL, VIEW_LINK, aria2, QB_SEED, dispatcher, DOWNLOAD_DIR, \
-                download_dict, download_dict_lock, TG_SPLIT_SIZE, LOGGER, MEGA_KEY, DB_URI, INCOMPLETE_TASK_NOTIFIER
+                download_dict, download_dict_lock, TG_SPLIT_SIZE, LOGGER, MEGA_KEY, DB_URI, INCOMPLETE_TASK_NOTIFIER, botname
 from bot.helper.ext_utils.bot_utils import is_url, is_magnet, is_gdtot_link, is_mega_link, is_gdrive_link, get_content_type, get_readable_time
 from bot.helper.ext_utils.fs_utils import get_base_name, get_path_size, split_file, clean_download
 from bot.helper.ext_utils.exceptions import DirectDownloadLinkException, NotSupportedExtractionArchive
@@ -31,7 +31,7 @@ from bot.helper.mirror_utils.upload_utils.gdriveTools import GoogleDriveHelper
 from bot.helper.mirror_utils.upload_utils.pyrogramEngine import TgUploader
 from bot.helper.telegram_helper.bot_commands import BotCommands
 from bot.helper.telegram_helper.filters import CustomFilters
-from bot.helper.telegram_helper.message_utils import sendMessage, sendMarkup, delete_all_messages, update_all_messages
+from bot.helper.telegram_helper.message_utils import sendMessage, sendMarkup, sendPrivateMsg, sendPrivateMarkup, delete_all_messages, update_all_messages
 from bot.helper.telegram_helper.button_build import ButtonMaker
 from bot.helper.ext_utils.db_handler import DbManger
 
@@ -201,18 +201,9 @@ class MirrorListener:
                 msg += f'\n<b>Corrupted Files: </b>{typ}'
             msg += f"\n\n<b>Elapsed Time:</b> {get_readable_time(time() - self.elapsed_time)}"
             msg += f'\n<b>cc: </b>{self.tag}\n\n'
-            if not files:
-                sendMessage(msg, self.bot, self.message)
-            else:
-                fmsg = ''
-                for index, (link, name) in enumerate(files.items(), start=1):
-                    fmsg += f"{index}. <a href='{link}'>{name}</a>\n"
-                    if len(fmsg.encode() + msg.encode()) > 4000:
-                        sendMessage(msg + fmsg, self.bot, self.message)
-                        sleep(1)
-                        fmsg = ''
-                if fmsg != '':
-                    sendMessage(msg + fmsg, self.bot, self.message)
+            pmsg = 'I Have Sent Your Files In Pm'
+            sendPrivateMsg(msg, self.bot, self.message)
+            sendMessage(msg + pmsg, self.bot, self.message)
         else:
             msg += f'\n\n<b>Type: </b>{typ}'
             if ospath.isdir(f'{DOWNLOAD_DIR}{self.uid}/{name}'):
@@ -220,6 +211,7 @@ class MirrorListener:
                 msg += f'\n<b>Files: </b>{files}'
             msg += f"\n\n<b>Elapsed Time:</b> {get_readable_time(time() - self.elapsed_time)}"
             msg += f'\n\n<b>cc: </b>{self.tag}'
+            pmsg = 'I Have Sent Your Links In Pm'
             buttons = ButtonMaker()
             buttons.buildbutton("☁️ Drive Link", link)
             LOGGER.info(f'Done Uploading {name}')
@@ -234,7 +226,8 @@ class MirrorListener:
                     if VIEW_LINK:
                         share_urls = f'{INDEX_URL}/{url_path}?a=view'
                         buttons.buildbutton("🌐 View Link", share_urls)
-            sendMarkup(msg, self.bot, self.message, InlineKeyboardMarkup(buttons.build_menu(2)))
+            sendPrivateMarkup(msg, self.bot, self.message, InlineKeyboardMarkup(buttons.build_menu(2)))
+            sendMessage(msg + pmsg, self.bot, self.message)
             if self.isQbit and QB_SEED and not self.extract:
                 if self.isZip:
                     try:
@@ -273,6 +266,21 @@ class MirrorListener:
             DbManger().rm_complete_task(self.message.link)
 
 def _mirror(bot, message, isZip=False, extract=False, isQbit=False, isLeech=False, pswd=None, multi=0):
+    buttons = ButtonMaker()
+    try:
+        msg1 = f'Added your Requested link to Download\n'
+        send = bot.sendMessage(message.from_user.id, text=msg1)
+        send.delete()
+    except Exception as e:
+        LOGGER.warning(e)
+        uname = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
+        botstart = f"http://t.me/{botname}"
+        buttons.buildbutton("Click Here to Start Me", f"{botstart}")
+        startwarn = f"Dear {uname},\n\n<b>I found that you haven't started me in PM (Private Chat) yet.</b>\n\n" \
+                    f"From now on i will give link and leeched files in PM"
+        sendMarkup(startwarn, bot, message, InlineKeyboardMarkup(buttons.build_menu(2)))
+        return
+
     mesg = message.text.split('\n')
     message_args = mesg[0].split(maxsplit=1)
     name_args = mesg[0].split('|', maxsplit=1)
